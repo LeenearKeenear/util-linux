@@ -8,21 +8,40 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Install Official Dependencies
-        # This combines their setup script logic into one fast command
+      - name: Install All Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential autoconf automake libtool pkg-config \
-                                 libncurses5-dev libsystemd-dev libudev-dev libblkid-dev
+          sudo apt-get install -y \
+            build-essential \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            gettext \
+            bison \
+            flex \
+            libncurses5-dev \
+            libsystemd-dev \
+            libudev-dev \
+            libblkid-dev \
+            asciidoctor
 
-      - name: Compile dmesg Only
+      - name: Generate Build System
+        run: ./autogen.sh
+
+      - name: Configure for dmesg Only
+        # We disable everything else to make the build nearly instant
         run: |
-          ./autogen.sh
-          ./configure --disable-all-programs --enable-dmesg
-          make dmesg
+          ./configure --disable-all-programs \
+                      --enable-dmesg \
+                      --prefix=/usr
 
-      - name: Upload for Testing
+      - name: Compile dmesg
+        run: make dmesg
+
+      - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dmesg-vulnerable-test
+          name: dmesg-compiled-binary
+          # The binary is created in the root directory after 'make dmesg'
           path: dmesg
