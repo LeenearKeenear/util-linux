@@ -1,4 +1,4 @@
-name: Targeted dmesg Build
+name: Targeted chrt Build
 on: [push, workflow_dispatch]
 
 jobs:
@@ -43,11 +43,11 @@ jobs:
                       --enable-dmesg \
                       --prefix=/usr
 
-      - name: Compile dmesg
-        run: make dmesg
+      - name: Compile chrt
+        run: make chrt
 
       - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dmesg-compiled-binary
-          path: dmesg
+          name: chrt-compiled-binary
+          path: chrt
