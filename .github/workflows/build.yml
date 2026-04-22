@@ -10,27 +10,34 @@ jobs:
 
       - name: Install All Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
             build-essential \
             autoconf \
             automake \
             libtool \
             pkg-config \
             gettext \
+            autopoint \
             bison \
             flex \
             libncurses5-dev \
             libsystemd-dev \
             libudev-dev \
-            libblkid-dev \
-            asciidoctor
+            libblkid-dev
+
+      - name: Verify Dependencies
+        run: |
+          which autopoint
+          autopoint --version
 
       - name: Generate Build System
-        run: ./autogen.sh
+        run: |
+          # Sometimes autogen.sh needs a little help finding its own macros
+          export ACLOCAL_PATH=/usr/share/aclocal
+          ./autogen.sh
 
       - name: Configure for dmesg Only
-        # We disable everything else to make the build nearly instant
         run: |
           ./configure --disable-all-programs \
                       --enable-dmesg \
@@ -43,5 +50,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dmesg-compiled-binary
-          # The binary is created in the root directory after 'make dmesg'
           path: dmesg
