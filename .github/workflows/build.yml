@@ -1,0 +1,28 @@
+name: Targeted dmesg Build
+on: [push, workflow_dispatch]
+
+jobs:
+  build_dmesg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Install Official Dependencies
+        # This combines their setup script logic into one fast command
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential autoconf automake libtool pkg-config \
+                                 libncurses5-dev libsystemd-dev libudev-dev libblkid-dev
+
+      - name: Compile dmesg Only
+        run: |
+          ./autogen.sh
+          ./configure --disable-all-programs --enable-dmesg
+          make dmesg
+
+      - name: Upload for Testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: dmesg-vulnerable-test
+          path: dmesg
