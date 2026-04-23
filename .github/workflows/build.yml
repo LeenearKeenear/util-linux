@@ -1,47 +1,53 @@
-name: Targeted uuidd Build (32-bit)
+name: Targeted dmesg Build
 on: [push, workflow_dispatch]
 
 jobs:
-  build_uuidd_32:
+  build_dmesg:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Install 32-bit Dependencies
+      - name: Install All Dependencies
         run: |
           sudo apt-get update -y
-          # gcc-multilib allows compiling for 32-bit on 64-bit systems
           sudo apt-get install -y --no-install-recommends \
-            build-essential autoconf automake libtool pkg-config \
-            gettext autopoint bison flex \
-            gcc-multilib g++-multilib \
-            libncurses5-dev:i386 libsystemd-dev:i386 libudev-dev:i386 libblkid-dev:i386 uuid-dev:i386
+            build-essential \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            gettext \
+            autopoint \
+            bison \
+            flex \
+            libncurses5-dev \
+            libsystemd-dev \
+            libudev-dev \
+            libblkid-dev
+
+      - name: Verify Dependencies
+        run: |
+          which autopoint
+          autopoint --version
 
       - name: Generate Build System
         run: |
+          # Sometimes autogen.sh needs a little help finding its own macros
           export ACLOCAL_PATH=/usr/share/aclocal
           ./autogen.sh
 
-      - name: Configure for 32-bit
-        # We pass -m32 to the compiler and linker
+      - name: Configure for dmesg Only
         run: |
-          ./configure --host=i686-linux-gnu \
-                      --disable-all-programs \
-                      --enable-uuidd \
-                      --enable-libuuid \
-                      CFLAGS="-m32" \
-                      LDFLAGS="-m32" \
+          ./configure --disable-all-programs \
+                      --enable-dmesg \
                       --prefix=/usr
 
-      - name: Compile uuidd
-        run: make uuidd
+      - name: Compile dmesg
+        run: make dmesg
 
-      - name: Verify 32-bit Architecture
-        run: file uuidd
-
-      - name: Upload 32-bit Binary
+      - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: uuidd-32bit-binary
-          path: uuidd
+          name: dmesg-compiled-binary
+          path: dmesg
