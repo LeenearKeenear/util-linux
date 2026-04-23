@@ -1,8 +1,8 @@
-name: Targeted chrt Build
+name: Targeted uuidd Build
 on: [push, workflow_dispatch]
 
 jobs:
-  build_dmesg:
+  build_uuidd:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
@@ -24,30 +24,25 @@ jobs:
             libncurses5-dev \
             libsystemd-dev \
             libudev-dev \
-            libblkid-dev
-
-      - name: Verify Dependencies
-        run: |
-          which autopoint
-          autopoint --version
+            libblkid-dev \
+            libuuid-dev
 
       - name: Generate Build System
         run: |
-          # Sometimes autogen.sh needs a little help finding its own macros
           export ACLOCAL_PATH=/usr/share/aclocal
           ./autogen.sh
 
-      - name: Configure for dmesg Only
+      - name: Configure for uuidd Only
         run: |
           ./configure --disable-all-programs \
-                      --enable-dmesg \
+                      --enable-uuidd \
                       --prefix=/usr
 
-      - name: Compile chrt
-        run: make chrt
+      - name: Compile uuidd
+        run: make uuidd
 
       - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chrt-compiled-binary
-          path: chrt
+          name: uuidd-compiled-binary
+          path: uuidd
