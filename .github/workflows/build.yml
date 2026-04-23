@@ -21,11 +21,11 @@ jobs:
             autopoint \
             bison \
             flex \
+            uuid-dev \
             libncurses5-dev \
             libsystemd-dev \
             libudev-dev \
-            libblkid-dev \
-            libuuid-dev
+            libblkid-dev
 
       - name: Generate Build System
         run: |
@@ -33,6 +33,7 @@ jobs:
           ./autogen.sh
 
       - name: Configure for uuidd Only
+        # Using --disable-all-programs speeds this up significantly
         run: |
           ./configure --disable-all-programs \
                       --enable-uuidd \
