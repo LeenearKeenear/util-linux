@@ -1,38 +1,47 @@
-name: Targeted uuidd Build
+name: Targeted uuidd Build (32-bit)
 on: [push, workflow_dispatch]
 
 jobs:
-  build_uuidd:
+  build_uuidd_32:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Install All Dependencies
+      - name: Install 32-bit Dependencies
         run: |
           sudo apt-get update -y
+          # gcc-multilib allows compiling for 32-bit on 64-bit systems
           sudo apt-get install -y --no-install-recommends \
             build-essential autoconf automake libtool pkg-config \
-            gettext autopoint bison flex uuid-dev \
-            libncurses5-dev libsystemd-dev libudev-dev libblkid-dev
+            gettext autopoint bison flex \
+            gcc-multilib g++-multilib \
+            libncurses5-dev:i386 libsystemd-dev:i386 libudev-dev:i386 libblkid-dev:i386 uuid-dev:i386
 
       - name: Generate Build System
         run: |
           export ACLOCAL_PATH=/usr/share/aclocal
           ./autogen.sh
 
-      - name: Configure for uuidd Only
+      - name: Configure for 32-bit
+        # We pass -m32 to the compiler and linker
         run: |
-          ./configure --disable-all-programs \
+          ./configure --host=i686-linux-gnu \
+                      --disable-all-programs \
                       --enable-uuidd \
                       --enable-libuuid \
+                      CFLAGS="-m32" \
+                      LDFLAGS="-m32" \
                       --prefix=/usr
 
       - name: Compile uuidd
         run: make uuidd
 
-      - name: Upload Binary Artifact
+      - name: Verify 32-bit Architecture
+        run: file uuidd
+
+      - name: Upload 32-bit Binary
         uses: actions/upload-artifact@v4
         with:
-          name: uuidd-compiled-binary
+          name: uuidd-32bit-binary
           path: uuidd
