@@ -50,10 +50,15 @@ jobs:
         working-directory: util-linux
         run: make -j"$(nproc)"
 
+      - name: Find binary
+        run: find util-linux -name "column" -type f 2>/dev/null
+
       - name: Verify binary
         run: |
-          file util-linux/text-utils/column
-          util-linux/text-utils/column --version
+          BIN=$(find util-linux -name "column" -type f | head -1)
+          echo "Found at: $BIN"
+          file "$BIN"
+          "$BIN" --version
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
