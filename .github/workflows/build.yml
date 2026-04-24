@@ -1,53 +1,40 @@
-name: Targeted dmesg Build
-on: [push, workflow_dispatch]
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on tags starting with v (e.g., v2.40)
 
 jobs:
-  build_dmesg:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install All Dependencies
+      - name: Install dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            gettext \
-            autopoint \
-            bison \
-            flex \
-            libncurses5-dev \
-            libsystemd-dev \
-            libudev-dev \
-            libblkid-dev
+          sudo apt-get update
+          sudo apt-get install -y build-essential autoconf automake libtool pkg-config \
+                                 gettext libncursesw5-dev libtinfo-dev libmount-dev \
+                                 libblkid-dev libuuid1 uuid-dev
 
-      - name: Verify Dependencies
+      - name: Configure and Build
         run: |
-          which autopoint
-          autopoint --version
-
-      - name: Generate Build System
-        run: |
-          # Sometimes autogen.sh needs a little help finding its own macros
-          export ACLOCAL_PATH=/usr/share/aclocal
           ./autogen.sh
+          ./configure
+          make -j$(nproc)
 
-      - name: Configure for dmesg Only
+      - name: Bundle Binaries
         run: |
-          ./configure --disable-all-programs \
-                      --enable-dmesg \
-                      --prefix=/usr
+          mkdir release_binaries
+          # This copies the major tools; adjust paths as needed
+          cp fdisk mount umount lsblk blkid release_binaries/
+          tar -czvf util-linux-bins.tar.gz release_binaries/
 
-      - name: Compile dmesg
-        run: make dmesg
-
-      - name: Upload Binary Artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: dmesg-compiled-binary
-          path: dmesg
+          files: util-linux-bins.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
