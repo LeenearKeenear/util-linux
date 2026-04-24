@@ -1,66 +1,64 @@
-name: Nuclear Build Script
+name: Build column
 
 on:
   push:
-    branches: [ "master", "main" ]
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Install Every Possible Dependency
+    steps:
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential \
+            git \
             autoconf \
             automake \
             libtool \
             pkg-config \
             gettext \
-            autopoint \
-            bison \
-            flex \
-            libncursesw5-dev \
-            libtinfo-dev \
-            libmount-dev \
-            libblkid-dev \
-            uuid-dev \
-            libfdisk-dev \
-            libsmartcols-dev \
-            libutil-dev
+            libncurses-dev \
+            libslang2-dev \
+            bison
 
-      - name: Force Build Script
+      - name: Clone util-linux
+        run: |
+          git clone --depth=1 https://github.com/util-linux/util-linux.git
+          cd util-linux
+
+      - name: Bootstrap
+        working-directory: util-linux
         run: |
           ./autogen.sh
-          # Standard configuration
-          ./configure --disable-all-programs --enable-script --enable-static-programs
-          
-          # Build the script tool
-          make script
-          
-          # Verify the file exists and move it
-          mkdir -p release_assets
-          if [ -f ./script ]; then
-            cp script release_assets/script-linux-amd64
-          else
-            echo "Searching for script binary..."
-            find . -name "script" -type f -executable -exec cp {} release_assets/script-linux-amd64 \;
-          fi
 
-      - name: Nuclear Release
-        uses: softprops/action-gh-release@v2
+      - name: Configure (minimal — only what column needs)
+        working-directory: util-linux
+        run: |
+          ./configure \
+            --disable-all-programs \
+            --enable-column \
+            --enable-libsmartcols \
+            --without-python \
+            --without-systemd \
+            --without-udev \
+            --disable-nls \
+            --disable-bash-completion
+
+      - name: Build
+        working-directory: util-linux
+        run: |
+          make -j"$(nproc)" text-utils/column
+
+      - name: Verify binary
+        run: |
+          file util-linux/text-utils/column
+          util-linux/text-utils/column --version
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: release_assets/script-linux-amd64
-          tag_name: latest-build
-          name: Latest Compiled Script
-          body: "Direct binary build of term-utils/script.c"
-          allow_updates: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: column-binary
+          path: util-linux/text-utils/column
