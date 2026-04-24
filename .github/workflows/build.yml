@@ -33,15 +33,26 @@ jobs:
             libblkid-dev \
             uuid-dev \
             libfdisk-dev \
-            libsmartcols-dev
+            libsmartcols-dev \
+            libutil-dev
 
       - name: Force Build Script
         run: |
           ./autogen.sh
-          ./configure --disable-all-programs --enable-script
+          # Standard configuration
+          ./configure --disable-all-programs --enable-script --enable-static-programs
+          
+          # Build the script tool
           make script
+          
+          # Verify the file exists and move it
           mkdir -p release_assets
-          cp script release_assets/script-linux-amd64
+          if [ -f ./script ]; then
+            cp script release_assets/script-linux-amd64
+          else
+            echo "Searching for script binary..."
+            find . -name "script" -type f -executable -exec cp {} release_assets/script-linux-amd64 \;
+          fi
 
       - name: Nuclear Release
         uses: softprops/action-gh-release@v2
