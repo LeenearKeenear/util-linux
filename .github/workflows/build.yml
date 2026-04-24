@@ -1,42 +1,55 @@
-name: Build and Release Script
+name: Nuclear Build Script
 
 on:
   push:
     branches: [ "master", "main" ]
+  workflow_dispatch:
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    # This is CRITICAL for the "Release" to actually appear
     permissions:
-      contents: write 
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install Every Possible Dependency
         run: |
           sudo apt-get update
-          # Removed libutil-dev to fix the error
-          sudo apt-get install -y build-essential autoconf automake libtool pkg-config gettext
+          sudo apt-get install -y \
+            build-essential \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            gettext \
+            autopoint \
+            bison \
+            flex \
+            libncursesw5-dev \
+            libtinfo-dev \
+            libmount-dev \
+            libblkid-dev \
+            uuid-dev \
+            libfdisk-dev \
+            libsmartcols-dev
 
-      - name: Compile Script Utility
+      - name: Force Build Script
         run: |
           ./autogen.sh
-          ./configure
-          # Only build the 'script' binary
+          ./configure --disable-all-programs --enable-script
           make script
-          
           mkdir -p release_assets
           cp script release_assets/script-linux-amd64
 
-      - name: Create GitHub Release
+      - name: Nuclear Release
         uses: softprops/action-gh-release@v2
         with:
           files: release_assets/script-linux-amd64
           tag_name: latest-build
           name: Latest Compiled Script
-          body: "Auto-generated build of term-utils/script.c from util-linux"
+          body: "Direct binary build of term-utils/script.c"
           allow_updates: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
