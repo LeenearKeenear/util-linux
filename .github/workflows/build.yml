@@ -27,14 +27,13 @@ jobs:
             flex
 
       - name: Clone util-linux
-        run: |
-          git clone --depth=1 https://github.com/util-linux/util-linux.git
+        run: git clone --depth=1 https://github.com/util-linux/util-linux.git
 
       - name: Bootstrap
         working-directory: util-linux
         run: ./autogen.sh
 
-      - name: Configure (minimal — only what column needs)
+      - name: Configure
         working-directory: util-linux
         run: |
           ./configure \
@@ -50,18 +49,8 @@ jobs:
         working-directory: util-linux
         run: make -j"$(nproc)"
 
-      - name: Find binary
-        run: find util-linux -name "column" -type f 2>/dev/null
-
-      - name: Verify binary
-        run: |
-          BIN=$(find util-linux -name "column" -type f | head -1)
-          echo "Found at: $BIN"
-          file "$BIN"
-          "$BIN" --version
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: column-binary
-          path: util-linux/text-utils/column
+          path: util-linux/**/column
