@@ -48,7 +48,7 @@ jobs:
 
       - name: Build
         working-directory: util-linux
-        run: make -j"$(nproc)" text-utils/column
+        run: make -j"$(nproc)"
 
       - name: Verify binary
         run: |
