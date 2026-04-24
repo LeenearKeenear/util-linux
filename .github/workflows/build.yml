@@ -17,22 +17,22 @@ jobs:
             git \
             autoconf \
             automake \
+            autopoint \
             libtool \
             pkg-config \
             gettext \
             libncurses-dev \
             libslang2-dev \
-            bison
+            bison \
+            flex
 
       - name: Clone util-linux
         run: |
           git clone --depth=1 https://github.com/util-linux/util-linux.git
-          cd util-linux
 
       - name: Bootstrap
         working-directory: util-linux
-        run: |
-          ./autogen.sh
+        run: ./autogen.sh
 
       - name: Configure (minimal — only what column needs)
         working-directory: util-linux
@@ -44,13 +44,11 @@ jobs:
             --without-python \
             --without-systemd \
             --without-udev \
-            --disable-nls \
             --disable-bash-completion
 
       - name: Build
         working-directory: util-linux
-        run: |
-          make -j"$(nproc)" text-utils/column
+        run: make -j"$(nproc)" text-utils/column
 
       - name: Verify binary
         run: |
