@@ -15,14 +15,30 @@ jobs:
             libsmartcols-dev \
             pkg-config
 
+      - name: Patch Headers
+        run: |
+          # Fix reallocarray conflict - system already has it
+          sed -i 's/static inline void \*reallocarray/\/\/ static inline void *reallocarray_disabled/' include/c.h
+          sed -i 's/^static inline void \*reallocarray/\/\//' include/c.h
+
+          # Fix fsync conflict
+          sed -i '/static.*fsync/,/^}/s/^/\/\//' include/closestream.h
+
+          # Fix usleep - define HAVE_USLEEP so the #error branch is skipped
+          sed -i 's/#error "System with usleep() or nanosleep() required!"/#define HAVE_USLEEP 1/' include/c.h
+
+          # Point libsmartcols.h to system install
+          cp $(pkg-config --variable=includedir smartcols)/libsmartcols.h include/libsmartcols.h
+
       - name: Build column directly
         run: |
           gcc -O2 -o column \
             text-utils/column.c \
             -I./include \
             -I./libsmartcols \
-            -I$(pkg-config --variable=includedir smartcols) \
             -D_GNU_SOURCE \
+            -DHAVE_USLEEP \
+            -DHAVE_NANOSLEEP \
             -Wno-error \
             $(pkg-config --libs smartcols)
 
