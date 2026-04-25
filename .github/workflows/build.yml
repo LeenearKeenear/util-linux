@@ -7,56 +7,28 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Install All Dependencies
+      - name: Install Dependencies
         run: |
           sudo apt-get update -y
           sudo apt-get install -y --no-install-recommends \
             build-essential \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            gettext \
-            autopoint \
-            bison \
-            flex \
-            libncurses5-dev \
-            libsystemd-dev \
-            libudev-dev \
-            libblkid-dev \
-            libpam0g-dev \
-            libcap-ng-dev \
-            libselinux1-dev \
-            libaudit-dev \
-            libmagic-dev \
-            libuser1-dev \
-            libsqlite3-dev \
-            libcryptsetup-dev \
-            libslang2-dev
+            libsmartcols-dev
 
-      - name: Generate Build System
+      - name: Build column directly
         run: |
-          export ACLOCAL_PATH=/usr/share/aclocal
-          ./autogen.sh
-
-      - name: Configure Everything
-        run: |
-          ./configure --prefix=/usr \
-                      --enable-static \
-                      --disable-irqtop \
-                      LDFLAGS="-static"
-
-      - name: Build Everything
-        run: make -j$(nproc)
+          gcc -O2 -o column \
+            text-utils/column.c \
+            -I./include \
+            -lsmartcols
 
       - name: Verify Binary
         run: |
-          ls -lh .libs/column
-          file .libs/column
-          .libs/column --version
+          ls -lh column
+          file column
+          ./column --version
 
       - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
           name: column-compiled-binary
-          path: .libs/column
+          path: column
