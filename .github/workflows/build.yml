@@ -6,6 +6,7 @@ jobs:
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
+
       - name: Install All Dependencies
         run: |
           sudo apt-get update -y
@@ -22,22 +23,35 @@ jobs:
             libncurses5-dev \
             libsystemd-dev \
             libudev-dev \
-            libblkid-dev
-      - name: Verify Dependencies
-        run: |
-          which autopoint
-          autopoint --version
+            libblkid-dev \
+            libpam0g-dev \
+            libcap-ng-dev \
+            libselinux1-dev \
+            libaudit-dev \
+            libmagic-dev \
+            libuser1-dev \
+            libsqlite3-dev \
+            libcryptsetup-dev \
+            libslang2-dev
+
       - name: Generate Build System
         run: |
           export ACLOCAL_PATH=/usr/share/aclocal
           ./autogen.sh
-      - name: Configure for column Only
+
+      - name: Configure Everything
         run: |
-          ./configure --disable-all-programs \
-                      --enable-column \
-                      --prefix=/usr
-      - name: Compile column
-        run: make column
+          ./configure --prefix=/usr
+
+      - name: Build Everything
+        run: make -j$(nproc)
+
+      - name: Verify Binary
+        run: |
+          ls -lh column
+          file column
+          ./column --version
+
       - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
