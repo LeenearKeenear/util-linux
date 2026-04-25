@@ -25,6 +25,7 @@ jobs:
           libtool \
           pkg-config \
           gettext \
+          gtk-doc-tools \
           libncursesw5-dev \
           libsystemd-dev \
           libcap-ng-dev \
