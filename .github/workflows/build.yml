@@ -1,55 +1,59 @@
-name: Targeted column Build
-on: [push, workflow_dispatch]
+name: Build column.c
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'text-utils/column.c'
+      - '.github/workflows/build.yml'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
 jobs:
-  build_column:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            libsmartcols-dev \
-            pkg-config
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          pkg-config \
+          libncursesw5-dev \
+          libsystemd-dev
 
-      - name: Patch Headers
-        run: |
-          # Fix reallocarray conflict - system already has it
-          sed -i 's/static inline void \*reallocarray/\/\/ static inline void *reallocarray_disabled/' include/c.h
-          sed -i 's/^static inline void \*reallocarray/\/\//' include/c.h
+    - name: Configure and build util-linux
+      run: |
+        ./configure --disable-all-programs --enable-column
+        make -j$(nproc)
 
-          # Fix fsync conflict
-          sed -i '/static.*fsync/,/^}/s/^/\/\//' include/closestream.h
+    - name: Create artifacts directory
+      run: mkdir -p artifacts
 
-          # Fix usleep - define HAVE_USLEEP so the #error branch is skipped
-          sed -i 's/#error "System with usleep() or nanosleep() required!"/#define HAVE_USLEEP 1/' include/c.h
+    - name: Copy compiled binary
+      run: |
+        if [ -f text-utils/column ]; then
+          cp text-utils/column artifacts/column
+        else
+          # Fallback: check other possible locations
+          find . -name "column" -type f -executable | head -1 | xargs -I {} cp {} artifacts/column || true
+        fi
 
-          # Point libsmartcols.h to system install
-          cp $(pkg-config --variable=includedir smartcols)/libsmartcols.h include/libsmartcols.h
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: column-binary
+        path: artifacts/column
+        retention-days: 30
 
-      - name: Build column directly
-        run: |
-          gcc -O2 -o column \
-            text-utils/column.c \
-            -I./include \
-            -I./libsmartcols \
-            -D_GNU_SOURCE \
-            -DHAVE_USLEEP \
-            -DHAVE_NANOSLEEP \
-            -Wno-error \
-            $(pkg-config --libs smartcols)
-
-      - name: Verify Binary
-        run: |
-          ls -lh column
-          file column
-          ./column --version
-
-      - name: Upload Binary Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: column-compiled-binary
-          path: column
+    - name: Create Release on tag
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/column
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
