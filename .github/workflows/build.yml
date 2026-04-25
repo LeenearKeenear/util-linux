@@ -1,56 +1,47 @@
-name: Build column
-
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
+name: Targeted column Build (32-bit)
+on: [push, workflow_dispatch]
 
 jobs:
-  build:
+  build_column_32:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Install dependencies
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Install 32-bit Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git \
-            autoconf \
-            automake \
-            autopoint \
-            libtool \
-            pkg-config \
-            gettext \
-            libncurses-dev \
-            libslang2-dev \
-            bison \
-            flex
+          sudo apt-get update -y
+          # gcc-multilib and :i386 packages for 32-bit support
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool pkg-config \
+            gettext autopoint bison flex \
+            gcc-multilib g++-multilib \
+            libncursesw5-dev:i386 libtinfo-dev:i386 libsmartcols-dev:i386
 
-      - name: Clone util-linux
-        run: git clone --depth=1 https://github.com/util-linux/util-linux.git
-
-      - name: Bootstrap
-        working-directory: util-linux
-        run: ./autogen.sh
-
-      - name: Configure
-        working-directory: util-linux
+      - name: Generate Build System
         run: |
-          ./configure \
-            --disable-all-programs \
-            --enable-column \
-            --enable-libsmartcols \
-            --without-python \
-            --without-systemd \
-            --without-udev \
-            --disable-bash-completion
+          export ACLOCAL_PATH=/usr/share/aclocal
+          ./autogen.sh
 
-      - name: Build
-        working-directory: util-linux
-        run: make -j"$(nproc)"
+      - name: Configure for column Only
+        # --enable-libsmartcols is mandatory for 'column'
+        run: |
+          ./configure --host=i686-linux-gnu \
+                      --disable-all-programs \
+                      --enable-column \
+                      --enable-libsmartcols \
+                      CFLAGS="-m32" \
+                      LDFLAGS="-m32" \
+                      --prefix=/usr
 
-      - name: Upload artifact
+      - name: Compile column
+        run: make column
+
+      - name: Verify 32-bit Architecture
+        run: file column
+
+      - name: Upload 32-bit Binary
         uses: actions/upload-artifact@v4
         with:
-          name: column-binary
-          path: util-linux/**/column
+          name: column-32bit-binary
+          path: column
