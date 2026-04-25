@@ -41,7 +41,9 @@ jobs:
 
       - name: Configure Everything
         run: |
-          ./configure --prefix=/usr
+          ./configure --prefix=/usr \
+                      --enable-static \
+                      LDFLAGS="-static"
 
       - name: Build Everything
         run: make -j$(nproc)
