@@ -14,41 +14,36 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install all build dependencies
+    - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
           build-essential \
-          autoconf \
-          automake \
-          autopoint \
-          libtool \
-          pkg-config \
-          gettext \
-          gtk-doc-tools \
           libncursesw5-dev \
           libsystemd-dev \
-          libcap-ng-dev \
-          libpam-dev
+          pkg-config
 
-    - name: Bootstrap and build
+    - name: Build column directly
       run: |
-        autoreconf -fiv
-        ./configure --prefix=/tmp/install --disable-all-programs --enable-column
-        make
-        make install
+        gcc -o column \
+          -I. -Iinclude \
+          text-utils/column.c \
+          -lncursesw -lm \
+          $(pkg-config --cflags --libs libsmartcols) \
+          $(pkg-config --cflags --libs ncursesw) \
+          -DHAVE_WIDECHAR
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: column-binary
-        path: /tmp/install/bin/column
+        path: column
         retention-days: 30
 
     - name: Create Release on tag
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: /tmp/install/bin/column
+        files: column
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
