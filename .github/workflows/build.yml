@@ -48,12 +48,12 @@ jobs:
 
       - name: Verify Binary
         run: |
-          ls -lh column
-          file column
-          ./column --version
+          ls -lh .libs/column
+          file .libs/column
+          .libs/column --version
 
       - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
           name: column-compiled-binary
-          path: column
+          path: .libs/column
