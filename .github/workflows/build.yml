@@ -12,14 +12,19 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y --no-install-recommends \
             build-essential \
-            libsmartcols-dev
+            libsmartcols-dev \
+            pkg-config
 
       - name: Build column directly
         run: |
           gcc -O2 -o column \
             text-utils/column.c \
             -I./include \
-            -lsmartcols
+            -I./libsmartcols \
+            -I$(pkg-config --variable=includedir smartcols) \
+            -D_GNU_SOURCE \
+            -Wno-error \
+            $(pkg-config --libs smartcols)
 
       - name: Verify Binary
         run: |
