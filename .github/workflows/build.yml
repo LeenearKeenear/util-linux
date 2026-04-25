@@ -1,47 +1,45 @@
-name: Targeted column Build (32-bit)
+name: Targeted column Build
 on: [push, workflow_dispatch]
-
 jobs:
-  build_column_32:
+  build_column:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
-
-      - name: Install 32-bit Dependencies
+      - name: Install All Dependencies
         run: |
           sudo apt-get update -y
-          # gcc-multilib and :i386 packages for 32-bit support
           sudo apt-get install -y --no-install-recommends \
-            build-essential autoconf automake libtool pkg-config \
-            gettext autopoint bison flex \
-            gcc-multilib g++-multilib \
-            libncursesw5-dev:i386 libtinfo-dev:i386 libsmartcols-dev:i386
-
+            build-essential \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            gettext \
+            autopoint \
+            bison \
+            flex \
+            libncurses5-dev \
+            libsystemd-dev \
+            libudev-dev \
+            libblkid-dev
+      - name: Verify Dependencies
+        run: |
+          which autopoint
+          autopoint --version
       - name: Generate Build System
         run: |
           export ACLOCAL_PATH=/usr/share/aclocal
           ./autogen.sh
-
       - name: Configure for column Only
-        # --enable-libsmartcols is mandatory for 'column'
         run: |
-          ./configure --host=i686-linux-gnu \
-                      --disable-all-programs \
+          ./configure --disable-all-programs \
                       --enable-column \
-                      --enable-libsmartcols \
-                      CFLAGS="-m32" \
-                      LDFLAGS="-m32" \
                       --prefix=/usr
-
       - name: Compile column
         run: make column
-
-      - name: Verify 32-bit Architecture
-        run: file column
-
-      - name: Upload 32-bit Binary
+      - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: column-32bit-binary
+          name: column-compiled-binary
           path: column
