@@ -136,10 +136,12 @@ static void __attribute__((__noreturn__)) usage(void)
 static void need_column(struct ul_ctl *ctl, size_t new_max)
 {
 	ctl->max_column = new_max;
-
-	while (new_max >= ctl->buflen) {
-		ctl->buflen *= 2;
+	if (new_max >= ctl->buflen) {
+		size_t old_buflen = ctl->buflen;
+		while (new_max >= ctl->buflen)
+			ctl->buflen *= 2;
 		ctl->buf = xreallocarray(ctl->buf, ctl->buflen, sizeof(struct ul_char));
+		memset(ctl->buf + old_buflen, 0, (ctl->buflen - old_buflen) * sizeof(struct ul_char));
 	}
 }
 
@@ -309,7 +311,7 @@ static void indicate_attribute(struct ul_ctl *ctl)
 		}
 	}
 
-	for (*p = ' '; *p == ' '; p--)
+	for (*p = ' '; p >= buf && *p == ' '; p--)
 		*p = 0;
 
 	fputws(buf, stdout);
@@ -344,25 +346,20 @@ static void overstrike(struct ul_ctl *ctl)
 
 	/* Set up overstrike buffer */
 	for (i = 0; i < ctl->max_column; i++) {
-		switch (ctl->buf[i].c_mode) {
-		case NORMAL_CHARSET:
-		default:
-			*p++ = ' ';
-			break;
-		case UNDERLINE:
-			*p++ = '_';
-			break;
-		case BOLD:
+		if (ctl->buf[i].c_mode & BOLD) {
 			*p++ = ctl->buf[i].c_char;
 			if (1 < ctl->buf[i].c_width)
 				i += ctl->buf[i].c_width - 1;
 			had_bold = 1;
-			break;
+		} else if (ctl->buf[i].c_mode & UNDERLINE) {
+			*p++ = '_';
+		} else {
+			*p++ = ' ';
 		}
 	}
 
 	putwchar('\r');
-	for (*p = ' '; *p == ' '; p--)
+	for (*p = ' '; p >= buf && *p == ' '; p--)
 		*p = 0;
 	fputws(buf, stdout);
 
